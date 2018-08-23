@@ -1,0 +1,53 @@
+USE [ClientTests]
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Nicholas Salls
+-- Create date: 8/23/2018
+-- Description:	Creation of SP to take existing CFD and append CODE to DESCRIPTION with : inbetween.
+-- =============================================
+ALTER PROCEDURE [dbo].[sp_ModifyGLCodesinCFD]
+AS
+declare
+	@sGLCodeDescription  [varchar] (100),
+	@iGLCodeNum          [int],
+	@iGLActiveFlag       [int],
+	@iPK_ID              [int],
+	@ErrorDescription    [varchar] (100),
+	@Output              [varchar] (50)
+
+DECLARE @StartIndex INT, @EndIndex INT
+DECLARE @Input varchar(100)
+DECLARE @Character varchar(100) = ':'
+DECLARE @NewValue  varchar(100) = ''
+DECLARE @Item varchar(50)
+
+DECLARE cur CURSOR FOR SELECT PK_ID ,Code, Description, ActiveFlag FROM [dbo].[CustomFieldData] where [fieldname] = 'Acct_GeneralLedger'
+OPEN cur
+
+FETCH NEXT FROM cur INTO @iPK_ID, @iGLCodeNum, @sGLCodeDescription, @iGLActiveFlag
+
+WHILE @@FETCH_STATUS = 0 BEGIN
+
+	 -------- SPLIT @sGLCodeDescription by : ---------------------------------
+	  SET @StartIndex = 1
+	  SET @Input = @sGLCodeDescription
+	  SET @NewValue = CONCAT(@iGLCodeNum, @Character, @sGLCodeDescription)
+	  -- ---------------------------------------------------------------
+
+			-- UPDATE EXISTING PK AND ACTIVEFLAG = 1
+			BEGIN
+			SET NOCOUNT ON;
+			UPDATE [CustomFieldData] SET [Description] = @NewValue where PK_ID = @iPK_ID
+			END
+			-- ----------------------------
+
+    FETCH NEXT FROM cur INTO @iGLCodeNum, @sGLCodeDescription	
+	-- ----------------------------------------------------------
+END
+
+CLOSE cur    
+DEALLOCATE cur
